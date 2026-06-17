@@ -1,0 +1,8 @@
+[
+  {
+    "description": "SAMPLE TEST CASE — replace or add more from RFC 2104 Appendix",
+    "key_hex": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+    "data_hex": "4869205468657265",
+    "output_hex": "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7"
+  }
+]

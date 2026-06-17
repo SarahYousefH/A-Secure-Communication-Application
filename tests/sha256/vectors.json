@@ -1,0 +1,7 @@
+[
+  {
+    "description": "SAMPLE TEST CASE — replace or add more from FIPS 180-4 Appendix B",
+    "input_hex": "616263",
+    "output_hex": "ba7816bf8f01cfea414140de5dae2ec73b00361bbef0469001d0087b8b3a4d63"
+  }
+]

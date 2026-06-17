@@ -1,8 +1,10 @@
-# Superpowers brainstorming session files (local only)
+# Superpowers session and planning files (local only)
 .superpowers/
+docs/superpowers/
 
 # Python
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *.pyo
 *.pyd

@@ -45,3 +45,14 @@ def _quarter_round(state, a, b, c, d):
     state[c] = (state[c] + state[d]) & 0xffffffff
     state[b] ^= state[c]
     state[b] = _rotl32(state[b], 7)
+
+def _create_state(key: bytes, counter: int, nonce: bytes):
+    key_words = list(struct.unpack("<8I", key))
+    nonce_words = list(struct.unpack("<3I", nonce))
+
+    return [
+        *CHACHA_CONSTANTS,
+        *key_words,
+        counter,
+        *nonce_words,
+    ]

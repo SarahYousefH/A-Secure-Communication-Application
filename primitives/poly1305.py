@@ -5,3 +5,22 @@ def poly1305(key: bytes, message: bytes) -> bytes:
     message: arbitrary length bytes
     """
     raise NotImplementedError
+
+def _clamp_r(r: bytes) -> int:
+    r = bytearray(r)
+
+    r[3] &= 15
+    r[7] &= 15
+    r[11] &= 15
+    r[15] &= 15
+
+    r[4] &= 252
+    r[8] &= 252
+    r[12] &= 252
+
+    return int.from_bytes(r, "little")
+
+def _blocks(message: bytes):
+    for i in range(0, len(message), 16):
+        block = message[i:i + 16]
+        yield block

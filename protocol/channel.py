@@ -61,3 +61,11 @@ def run(sock: socket.socket, key_send: bytes, key_recv: bytes, nonce_material: b
     t_recv.start()
     t_send.join()
     t_recv.join()
+
+def _build_nonce(nonce_material: bytes, sequence_number: int) -> bytes:
+    seq = sequence_number.to_bytes(12, "little")
+
+    return bytes(
+        a ^ b
+        for a, b in zip(nonce_material, seq)
+    )

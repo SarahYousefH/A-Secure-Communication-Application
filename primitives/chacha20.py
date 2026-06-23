@@ -62,6 +62,7 @@ def chacha20_block(key: bytes, counter: int, nonce: bytes) -> bytes:
     
     return struct.pack("<16I", *working)
 
+
 def chacha20(key: bytes, nonce: bytes, counter: int, data: bytes) -> bytes:
     """Returns ChaCha20 keystream XOR'd with data per RFC 8439 §2.4.
 

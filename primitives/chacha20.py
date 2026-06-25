@@ -14,7 +14,7 @@ def chacha20_block(key: bytes, counter: int, nonce: bytes) -> bytes:
     counter: 32-bit unsigned integer
     nonce: 12 bytes
     """
-    """ 1. Create the state: At this point state contains 16 numbers:
+    """ 1. Create the state: At this point 'state' contains 16 numbers:
 
         0  1  2  3   -> constants
         4  5  6  7
@@ -29,7 +29,7 @@ def chacha20_block(key: bytes, counter: int, nonce: bytes) -> bytes:
 
     working = state.copy()
 
-    """ 3. Run 20 rounds: (For loop 10 times)
+    """ 3. Run 20 rounds: (FOR loop should iterate 10 times)
         Each loop performs:
         4 column rounds
         4 diagonal rounds
@@ -59,9 +59,8 @@ def chacha20_block(key: bytes, counter: int, nonce: bytes) -> bytes:
         - < = little-endian
         - 16I = 16 unsigned 32-bit integers
         - 16 × 4 bytes = 64 bytes = (Exactly one ChaCha20 block)"""
-    
-    return struct.pack("<16I", *working)
 
+    return struct.pack("<16I", *working)
 
 def chacha20(key: bytes, nonce: bytes, counter: int, data: bytes) -> bytes:
     """Returns ChaCha20 keystream XOR'd with data per RFC 8439 §2.4.
@@ -71,7 +70,52 @@ def chacha20(key: bytes, nonce: bytes, counter: int, data: bytes) -> bytes:
     counter: initial block counter (0 for AEAD, 1 for raw encryption)
     data: plaintext or ciphertext of any length
     """
-    raise NotImplementedError
+    # validate key and nonce sizes
+    if len(key) != 32:
+        raise ValueError("Key must be 32 bytes")
+
+    if len(nonce) != 12:
+        raise ValueError("Nonce must be 12 bytes")
+
+    """ 1. Create bytearray to store the result
+        (a mutable byte object is required to add encrypted texts to it)"""
+    result = bytearray()
+
+    # track where we are in the data
+    offset = 0
+
+    """2. Process all the data"""
+    while offset < len(data):
+        # ChaCha20 returns 64 bytes
+        block = chacha20_block(
+            key,
+            counter,
+            nonce
+        )
+
+        # Take the next chunk of data,
+        # one ChaCha20 block only encrypts 64 bytes
+        chunk = data[offset:offset + 64]
+
+        # XOR the plaintext/ciphertext chunk with the keystream block
+
+        # zip() automatically stops at the shorter sequence, which is
+        # important for the final chunk if it contains fewer than 64 bytes
+        result.extend(
+            a ^ b
+            for a, b in zip(chunk, block)
+        )
+
+        # Move to the next chunk
+        offset += len(chunk)
+
+        # Move to the next ChaCha20 block
+        # Each block must use a unique counter value so that a new
+        # keystream block is generated every iteration
+        counter += 1
+
+    # function should return immutable bytes object
+    return bytes(result)
 
 def _rotl32(v: int, n: int) -> int:
     """Rotate left"""
@@ -102,8 +146,9 @@ def _quarter_round(state, a, b, c, d):
     state[b] = _rotl32(state[b], 7)
 
 def _create_state(key: bytes, counter: int, nonce: bytes):
-    """Convert key"""
+    # Convert the 32-byte key into eight 32-bit little-endian words
     key_words = list(struct.unpack("<8I", key))
+    # Convert the 12-byte nonce into three 32-bit little-endian words
     nonce_words = list(struct.unpack("<3I", nonce))
 
     """ ChaCha20 state is:

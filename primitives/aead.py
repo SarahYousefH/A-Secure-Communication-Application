@@ -15,7 +15,48 @@ def chacha20_poly1305_encrypt(
     aad: additional authenticated data (authenticated but not encrypted)
     tag: 16-byte Poly1305 MAC
     """
-    raise NotImplementedError
+
+    # Generate the one-time Poly1305 key
+    poly_key = chacha20(
+        key,
+        nonce,
+        0,
+        b"\x00" * 32
+    )[:32]
+
+    # Encrypt the plaintext using ChaCha20
+    #   Counter 0 was already used to create the MAC key
+    #   The RFC says actual encryption starts at counter = 1
+    ciphertext = chacha20(
+        key,
+        nonce,
+        1,
+        plaintext
+    )
+
+    # Additional Authenticated Data (authenticated but not encrypted)
+    mac_data = aad
+
+    # Poly1305 processes data in 16-byte blocks
+    # If the AAD isn't already a multiple of 16 bytes, pad with zeros
+    if len(aad) % 16 != 0:
+        mac_data += b"\x00" * (16 - (len(aad) % 16))
+
+    # append the encrypted message
+    mac_data += ciphertext
+
+    # Pad the ciphertext (Poly1305 needs multiples of 16 bytes)
+    if len(ciphertext) % 16 != 0:
+        mac_data += b"\x00" * (16 - (len(ciphertext) % 16))
+
+    # Append the lengths of the AAD and ciphertext (8 bytes each)
+    mac_data += len(aad).to_bytes(8, "little")
+    mac_data += len(ciphertext).to_bytes(8, "little")
+
+    # Compute the authentication tag
+    tag = poly1305(poly_key, mac_data)
+
+    return ciphertext, tag
 
 def chacha20_poly1305_decrypt(
     key: bytes,

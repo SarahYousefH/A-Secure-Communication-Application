@@ -1,5 +1,6 @@
 import json
 import os
+import pytest
 from primitives.chacha20 import chacha20
 
 def load_vectors():
@@ -7,9 +8,22 @@ def load_vectors():
     with open(path) as f:
         return json.load(f)
 
-def test_chacha20_vectors():
+@pytest.mark.parametrize("vector", load_vectors(), ids=lambda v: v['description'])
+def test_chacha20_vectors(vector):
+    key = bytes.fromhex(vector['key_hex'])
+    nonce = bytes.fromhex(vector['nonce_hex'])
+    counter = vector['counter']
+    plaintext = bytes.fromhex(vector['plaintext_hex'])
+    expected = bytes.fromhex(vector['ciphertext_hex'])
+    result = chacha20(key, nonce, counter, plaintext)
+    assert result == expected, (
+        f"FAIL [{vector['description']}]\n"
+        f"  expected: {expected.hex()}\n"
+        f"  got:      {result.hex()}"
+    )
+
+if __name__ == '__main__':
     vectors = load_vectors()
-    passed = 0
     for v in vectors:
         key = bytes.fromhex(v['key_hex'])
         nonce = bytes.fromhex(v['nonce_hex'])
@@ -22,9 +36,4 @@ def test_chacha20_vectors():
             f"  expected: {expected.hex()}\n"
             f"  got:      {result.hex()}"
         )
-        passed += 1
-    return passed, len(vectors)
-
-if __name__ == '__main__':
-    passed, total = test_chacha20_vectors()
-    print(f"ChaCha20 ... PASSED ({passed}/{total} vectors)")
+    print(f"ChaCha20 ... PASSED ({len(vectors)}/{len(vectors)} vectors)")

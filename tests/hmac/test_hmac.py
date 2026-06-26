@@ -1,5 +1,6 @@
 import json
 import os
+import pytest
 from primitives.hmac_impl import hmac
 
 def load_vectors():
@@ -7,9 +8,20 @@ def load_vectors():
     with open(path) as f:
         return json.load(f)
 
-def test_hmac_vectors():
+@pytest.mark.parametrize("vector", load_vectors(), ids=lambda v: v['description'])
+def test_hmac_vectors(vector):
+    key = bytes.fromhex(vector['key_hex'])
+    data = bytes.fromhex(vector['data_hex'])
+    expected = bytes.fromhex(vector['output_hex'])
+    result = hmac(key, data)
+    assert result == expected, (
+        f"FAIL [{vector['description']}]\n"
+        f"  expected: {expected.hex()}\n"
+        f"  got:      {result.hex()}"
+    )
+
+if __name__ == '__main__':
     vectors = load_vectors()
-    passed = 0
     for v in vectors:
         key = bytes.fromhex(v['key_hex'])
         data = bytes.fromhex(v['data_hex'])
@@ -20,9 +32,4 @@ def test_hmac_vectors():
             f"  expected: {expected.hex()}\n"
             f"  got:      {result.hex()}"
         )
-        passed += 1
-    return passed, len(vectors)
-
-if __name__ == '__main__':
-    passed, total = test_hmac_vectors()
-    print(f"HMAC     ... PASSED ({passed}/{total} vectors)")
+    print(f"HMAC     ... PASSED ({len(vectors)}/{len(vectors)} vectors)")

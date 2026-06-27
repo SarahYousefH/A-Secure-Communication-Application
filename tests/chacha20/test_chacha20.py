@@ -55,7 +55,7 @@ def test_chacha20_vectors(vector):
         return
 
     # -----------------------------
-    # Encryption test (your original style)
+    # Encryption test 
     # -----------------------------
     if vtype == "encrypt":
         key = bytes.fromhex(vector['key_hex'])
@@ -89,7 +89,7 @@ def test_chacha20_vectors(vector):
 
 
 # -----------------------------
-# CLI runner 
+# CLI runner
 # -----------------------------
 if __name__ == '__main__':
     vectors = load_vectors()

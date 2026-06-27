@@ -113,13 +113,37 @@ key_c2s, key_s2c, nonce_material = HKDF(shared, salt=PSK, info="SecureChannel-v1
 - Two separate keys (`key_c2s`, `key_s2c`) — one key in both directions allows reflection attacks
 
 ### Phase B — Secure Messaging
+```
+Packet Format
 
++----------------------+----------------+----------------------+
+| Header (16 bytes)    | Ciphertext     | Poly1305 Tag (16 B)  |
++----------------------+----------------+----------------------+
+
+Header Layout
+
+Byte(s)    Field
+---------------------------------
+1          Protocol Version
+1          Message Type
+1          Sender ID
+1          Reserved
+8          Sequence Number
+4          Plaintext Length
+---------------------------------
+Total: 16 bytes
+```
 ```
 SENDER                                           RECEIVER
 ──────                                           ────────
 
 build header:                                    read header (plaintext)
-  version, sender_id, seq_number
+  protocol_version
+  message_type
+  sender_id
+  reserved
+  sequence_number
+  plaintext_length
                                                  check seq_number > last_seen
 nonce = nonce_material XOR seq_number               → reject if not (replay attack)
 
@@ -141,7 +165,10 @@ send: [header][ciphertext][tag]
 **Why each step matters:**
 - `ChaCha20` — encrypts; attacker cannot read the message
 - `Poly1305` tag — any modification (even one bit) causes decryption failure
-- `aad = header` — AAD (Additional Authenticated Data) is data you want to authenticate but not encrypt. The header is sent in plaintext so the receiver can read sender_id and seq_number before decrypting, but it is included in the Poly1305 tag calculation so any attacker modification is detected
+- `aad` = header — The entire protocol header (protocol version, message type,
+          sender ID, reserved field, sequence number, and plaintext length) is
+          authenticated but not encrypted. This allows the receiver to process the
+          packet while ensuring any modification is detected during authentication. The           header is sent in plaintext so the receiver can read sender_id and seq_number           before decrypting, but it is included in the Poly1305 tag calculation so any            attacker modification is detected
 - Sequence numbers — reject replayed messages the attacker captured and re-sent
 
 ### Primitive Dependency Chain

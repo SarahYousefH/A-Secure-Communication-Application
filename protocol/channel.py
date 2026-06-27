@@ -6,9 +6,9 @@ ChaCha20-Poly1305. Each message carries a plaintext authenticated
 header and an encrypted payload protected by AEAD.
 """
 import socket
+import struct
 import threading
 from primitives.aead import chacha20_poly1305_encrypt, chacha20_poly1305_decrypt
-import struct
 
 def _send_loop(sock: socket.socket, key_send: bytes, nonce_material: bytes, identity: str) -> None:
     """Reads lines from stdin, encrypts each one, and sends it over sock.
@@ -26,6 +26,9 @@ def _send_loop(sock: socket.socket, key_send: bytes, nonce_material: bytes, iden
     # Every outgoing message needs a unique sequence number
     sequence_number = 1
 
+    if identity not in ("client", "server"):
+        raise ValueError("Identity must be 'client' or 'server'.")
+
     while True:
         try:
             plaintext = input()
@@ -35,10 +38,6 @@ def _send_loop(sock: socket.socket, key_send: bytes, nonce_material: bytes, iden
 
         # Convert the sender identity into a single byte
         # client = 0, server = 1
-
-        if identity not in ("client", "server"):
-            raise ValueError("Identity must be 'client' or 'server'.")
-
         sender_id = 0 if identity == "client" else 1
 
         # Protocol header fields.
@@ -47,7 +46,8 @@ def _send_loop(sock: socket.socket, key_send: bytes, nonce_material: bytes, iden
         message_type = 1  # Chat message
         reserved = 0
 
-        # Build the nonce first
+        # Construct a unique nonce from the initial nonce material
+        # and the current sequence number
         nonce = _build_nonce(
             nonce_material,
             sequence_number
@@ -131,6 +131,7 @@ def _recv_loop(sock: socket.socket, key_recv: bytes, nonce_material: bytes) -> N
             if not header:
                 break
 
+            # Extract the header fields from the received packet
             (
                 protocol_version,
                 message_type,
@@ -139,6 +140,19 @@ def _recv_loop(sock: socket.socket, key_recv: bytes, nonce_material: bytes) -> N
                 sequence_number,
                 plaintext_length,
             ) = struct.unpack("<BBBBQI", header)
+
+            # Validate the header before processing the message
+            if protocol_version != 1:
+                raise ValueError("Unsupported protocol version.")
+
+            if message_type != 1:
+                raise ValueError("Unknown message type.")
+
+            if reserved != 0:
+                raise ValueError("Reserved field must be zero.")
+
+            if sender_id not in (0, 1):
+                raise ValueError("Invalid sender ID.")
 
             # Reject duplicate or out-of-order messages
             if sequence_number <= last_seen_seq_number:
@@ -171,13 +185,15 @@ def _recv_loop(sock: socket.socket, key_recv: bytes, nonce_material: bytes) -> N
                     header
                 )
             except ValueError:
-                print("Authentication failed.")
+                print("Authentication failed. Message may have been tampered with.")
                 break
 
             last_seen_seq_number = sequence_number
             print(plaintext.decode())
     except ConnectionError:
         print("Peer disconnected.")
+    except ValueError as e:
+        print(e)
 
 
 def run(sock: socket.socket, key_send: bytes, key_recv: bytes, nonce_material: bytes, identity: str) -> None:
@@ -195,6 +211,15 @@ def run(sock: socket.socket, key_send: bytes, key_recv: bytes, nonce_material: b
     .join() makes run() wait here until both threads finish (i.e. until the
     connection closes or an error occurs in either direction).
     """
+    if len(nonce_material) != 12:
+        raise ValueError("Nonce material must be 12 bytes.")
+
+    if len(key_send) != 32:
+        raise ValueError("Invalid send key. Send key must be 32 bytes.")
+
+    if len(key_recv) != 32:
+        raise ValueError("Invalid receive key. Receive key must be 32 bytes.")
+
     t_send = threading.Thread(target=_send_loop, args=(sock, key_send, nonce_material, identity))
     t_recv = threading.Thread(target=_recv_loop, args=(sock, key_recv, nonce_material))
     t_send.start()

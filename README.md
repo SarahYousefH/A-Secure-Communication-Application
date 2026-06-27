@@ -267,4 +267,11 @@ python server.py --host 127.0.0.1 --port 5000
 python client.py --host 127.0.0.1 --port 5000
 ```
 
+Or to debug and show the messages being sent and received:
+
+```bash
+# Terminal 1
+python server.py --verbose
+python client.py --verbose
+```
 ---

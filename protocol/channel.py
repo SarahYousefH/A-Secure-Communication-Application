@@ -10,7 +10,7 @@ import struct
 import threading
 from primitives.aead import chacha20_poly1305_encrypt, chacha20_poly1305_decrypt
 
-def _send_loop(sock: socket.socket, key_send: bytes, nonce_material: bytes, identity: str) -> None:
+def _send_loop(sock: socket.socket, key_send: bytes, nonce_material: bytes, identity: str, verbose: bool = False) -> None:
     """Reads lines from stdin, encrypts each one, and sends it over sock.
 
     Runs forever until the user closes stdin (Ctrl+D) or the connection drops.
@@ -86,10 +86,13 @@ def _send_loop(sock: socket.socket, key_send: bytes, nonce_material: bytes, iden
             print("Connection closed.")
             break
 
+        if verbose:
+            print(f"[sent] seq={sequence_number}, ciphertext={ciphertext.hex()}, tag={tag.hex()}")
+
         sequence_number += 1
 
 
-def _recv_loop(sock: socket.socket, key_recv: bytes, nonce_material: bytes) -> None:
+def _recv_loop(sock: socket.socket, key_recv: bytes, nonce_material: bytes, verbose: bool = False) -> None:
     """Reads encrypted messages from sock, decrypts each one, and prints to stdout.
 
     Runs forever until the connection closes or a message fails authentication.
@@ -179,6 +182,9 @@ def _recv_loop(sock: socket.socket, key_recv: bytes, nonce_material: bytes) -> N
                 sequence_number
             )
 
+            if verbose:
+                print(f"[recv] seq={sequence_number}, ciphertext={ciphertext.hex()}, tag={tag.hex()}")
+
             try:
                 plaintext = chacha20_poly1305_decrypt(
                     key_recv,
@@ -199,7 +205,7 @@ def _recv_loop(sock: socket.socket, key_recv: bytes, nonce_material: bytes) -> N
         print(e)
 
 
-def run(sock: socket.socket, key_send: bytes, key_recv: bytes, nonce_material: bytes, identity: str) -> None:
+def run(sock: socket.socket, key_send: bytes, key_recv: bytes, nonce_material: bytes, identity: str, verbose: bool = False) -> None:
     """Starts the secure messaging loop and blocks until the session ends.
 
     Why threads: _send_loop blocks waiting for the user to type. _recv_loop
@@ -223,8 +229,8 @@ def run(sock: socket.socket, key_send: bytes, key_recv: bytes, nonce_material: b
     if len(key_recv) != 32:
         raise ValueError("Invalid receive key. Receive key must be 32 bytes.")
 
-    t_send = threading.Thread(target=_send_loop, args=(sock, key_send, nonce_material, identity))
-    t_recv = threading.Thread(target=_recv_loop, args=(sock, key_recv, nonce_material))
+    t_send = threading.Thread(target=_send_loop, args=(sock, key_send, nonce_material, identity, verbose))
+    t_recv = threading.Thread(target=_recv_loop, args=(sock, key_recv, nonce_material, verbose))
     t_send.start()
     t_recv.start()
     t_send.join()

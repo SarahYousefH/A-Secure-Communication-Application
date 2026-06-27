@@ -1,5 +1,5 @@
 from primitives.hmac_impl import hmac, HASH_LEN
-
+import math
 
 def hkdf(input_key_material: bytes, salt: bytes, info: bytes, length: int) -> bytes:
     """Returns `length` bytes of derived key material per RFC 5869.
@@ -7,7 +7,9 @@ def hkdf(input_key_material: bytes, salt: bytes, info: bytes, length: int) -> by
     Performs HKDF-Extract followed by HKDF-Expand.
     length must be <= 255 * 32 (HashLen for SHA-256).
     """
-    raise NotImplementedError
+    prk = _hkdf_extract(salt, input_key_material)
+    okm = _hkdf_expand(prk, info, length)
+    return okm
 
 
 def _hkdf_extract(salt: bytes, input_key_material: bytes) -> bytes:
@@ -18,36 +20,18 @@ def _hkdf_extract(salt: bytes, input_key_material: bytes) -> bytes:
       return hmac(salt, input_key_material)
 
 
-def _hkdf_expand(prk: bytes, info: bytes, length: int) -> bytes:
+def _hkdf_expand(prk: bytes, info: bytes, length_bytes: int) -> bytes:
     """Returns output keying material (OKM)"""
     # Here we need to expand because we need more than 32 bytes for session keys
-   
 
-HKDF-Expand(PRK, info, L) -> OKM
+    N = math.ceil(length_bytes / HASH_LEN)
 
-   Options:
-      Hash     a hash function; HashLen denotes the length of the
-               hash function output in octets
+    # define array of T values
+    T = [b''] * (N+1) # we initialize the array with empty bytes
+    
+    for i in range(1,N+1): # we start from 1 because T[0] is empty
+        T[i] = hmac(prk, T[i-1] + info + bytes([i]))
 
-Inputs:
-      PRK      a pseudorandom key of at least HashLen octets
-               (usually, the output from the extract step)
-      info     optional context and application specific information
-               (can be a zero-length string)
-      L        length of output keying material in octets
-               (<= 255*HashLen)
-
-   Output:
-      OKM      output keying material (of L octets)
-
-   The output OKM is calculated as follows:
-
-   N = ceil(L/HashLen)
-   T = T(1) | T(2) | T(3) | ... | T(N)
-   OKM = first L octets of T
-
-   where:
-   T(0) = empty string (zero length)
-   T(1) = HMAC-Hash(PRK, T(0) | info | 0x01)
-   T(2) = HMAC-Hash(PRK, T(1) | info | 0x02)
-   T(3) = HMAC-Hash(PRK, T(2) | info | 0x03)
+    T = b''.join(T[1:]) # join all the blocks
+    OKM =  T[:length_bytes]
+    return OKM

@@ -16,6 +16,48 @@
     ]
   },
 
+   {
+    "type": "quarter_round_state",
+    "description": "RFC 8439 §2.2.1 Quarter Round on State",
+    "initial_state": [
+      "879531e0",
+      "c5ecf37d",
+      "516461b1",
+      "c9a62f8a",
+      "44c20ef3",
+      "3390af7f",
+      "d9fc690b",
+      "2a5f714c",
+      "53372767",
+      "b00a5631",
+      "974c541a",
+      "359e9963",
+      "5c971061",
+      "3d631689",
+      "2098d9d6",
+      "91dbd320"
+    ],
+    "quarter_round_indices": [2, 7, 8, 13],
+    "expected_state": [
+      "879531e0",
+      "c5ecf37d",
+      "bdb886dc",
+      "c9a62f8a",
+      "44c20ef3",
+      "3390af7f",
+      "d9fc690b",
+      "cfacafd2",
+      "e46bea80",
+      "b00a5631",
+      "974c541a",
+      "359e9963",
+      "5c971061",
+      "ccc07c79",
+      "2098d9d6",
+      "91dbd320"
+    ]
+  },
+
   {
     "type": "create_state",
     "description": "RFC 8439 §2.2.1 Initial State",

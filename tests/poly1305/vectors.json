@@ -1,8 +1,14 @@
 [
   {
-    "description": "SAMPLE TEST CASE — replace or add more from RFC 8439 §2.5.2",
+    "description": "RFC 8439 Poly1305 Test Vector #1",
     "key_hex": "85d6be7857556d337f4452fe42d506a80103808afb0db2fd4abff6af4149f51b",
     "message_hex": "43727970746f6772617068696320466f72756d2052657365617263682047726f7570",
     "tag_hex": "a8061dc1305136c6c22b8baf0c0127a9"
+  },
+  {
+    "description": "RFC 8439 Poly1305 Empty Message",
+    "key_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+    "message_hex": "",
+    "tag_hex": "00000000000000000000000000000000"
   }
 ]

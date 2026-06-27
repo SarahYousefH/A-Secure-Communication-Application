@@ -1,3 +1,10 @@
+"""
+Secure messaging channel.
+
+This module provides bidirectional encrypted communication using
+ChaCha20-Poly1305. Each message carries a plaintext authenticated
+header and an encrypted payload protected by AEAD.
+"""
 import socket
 import threading
 from primitives.aead import chacha20_poly1305_encrypt, chacha20_poly1305_decrypt
@@ -28,9 +35,14 @@ def _send_loop(sock: socket.socket, key_send: bytes, nonce_material: bytes, iden
 
         # Convert the sender identity into a single byte
         # client = 0, server = 1
+
+        if identity not in ("client", "server"):
+            raise ValueError("Identity must be 'client' or 'server'.")
+
         sender_id = 0 if identity == "client" else 1
 
-        # Protocol constants
+        # Protocol header fields.
+        # The header is transmitted in plaintext but authenticated as AEAD AAD
         protocol_version = 1
         message_type = 1  # Chat message
         reserved = 0
@@ -41,7 +53,7 @@ def _send_loop(sock: socket.socket, key_send: bytes, nonce_material: bytes, iden
             sequence_number
         )
 
-        # build the 16-byte header
+        # Pack the protocol header into a fixed 16-byte binary format
         header = struct.pack(
             "<BBBBQI",
             protocol_version,
@@ -60,7 +72,8 @@ def _send_loop(sock: socket.socket, key_send: bytes, nonce_material: bytes, iden
             header
         )
 
-        # Combine all parts of the packet
+        # Packet format:
+        # [Header (16 bytes)] [Ciphertext] [Authentication Tag (16 bytes)]
         packet = header + ciphertext + tag
 
         # Send the entire packet
@@ -71,7 +84,6 @@ def _send_loop(sock: socket.socket, key_send: bytes, nonce_material: bytes, iden
             break
 
         sequence_number += 1
-
 
 
 def _recv_loop(sock: socket.socket, key_recv: bytes, nonce_material: bytes) -> None:
@@ -112,6 +124,9 @@ def _recv_loop(sock: socket.socket, key_recv: bytes, nonce_material: bytes) -> N
             # Read one complete header
             header = _recv_exact(sock, 16)
 
+            # The header is transmitted in plaintext because it is needed
+            # to reconstruct the nonce and authenticate the message
+
             # Connection closed
             if not header:
                 break
@@ -125,6 +140,7 @@ def _recv_loop(sock: socket.socket, key_recv: bytes, nonce_material: bytes) -> N
                 plaintext_length,
             ) = struct.unpack("<BBBBQI", header)
 
+            # Reject duplicate or out-of-order messages
             if sequence_number <= last_seen_seq_number:
                 raise ValueError("Replay attack detected.")
 
@@ -188,16 +204,27 @@ def run(sock: socket.socket, key_send: bytes, key_recv: bytes, nonce_material: b
 
     sock.close()
 
+
 def _build_nonce(nonce_material: bytes, sequence_number: int) -> bytes:
+    """Construct a unique 96-bit nonce by XORing the initial nonce material
+       with the message sequence number."""
+    # Convert the sequence number to a 12-byte little-endian value
     seq = sequence_number.to_bytes(12, "little")
 
+    # XOR the initial nonce material with the sequence number
+    # This guarantees a different nonce for every message
     return bytes(
         a ^ b
         for a, b in zip(nonce_material, seq)
     )
 
+
 def _recv_exact(sock: socket.socket, n: int) -> bytes:
-    """Read exactly n bytes from the socket."""
+    """Read exactly n bytes from the socket.
+
+    TCP is a byte stream, so a single recv() call may return fewer
+    than the requested number of bytes.
+    """
     data = bytearray()
 
     while len(data) < n:

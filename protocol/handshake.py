@@ -2,17 +2,8 @@ import socket
 from primitives.x25519 import x25519
 from primitives.hmac_impl import hmac
 from primitives.hkdf import hkdf
+from protocol.key_generation import generate_keypair
 
-
-# Todo: make a test for this 
-
-def generate_keypair() -> tuple[bytes, bytes]:
-    """Returns (private_key, public_key) — both 32 bytes.
-
-    private_key is 32 random bytes (clamped per RFC 7748 §5).
-    public_key is the corresponding X25519 public key.
-    """
-    raise NotImplementedError
 
 def perform_handshake(sock: socket.socket, psk: bytes, identity: str) -> tuple[bytes, bytes, bytes]:
     """Performs the Phase A handshake and returns session keys.

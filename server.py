@@ -19,6 +19,7 @@ def main() -> None:
 
     sock = create_server_socket(args.host, args.port)
     key_c2s, key_s2c, nonce_material = perform_handshake(sock, psk, identity)
+    print("[server] Handshake completed successfully.")
     run(sock, key_send=key_s2c, key_recv=key_c2s, nonce_material=nonce_material, identity=identity)
 
 if __name__ == "__main__":

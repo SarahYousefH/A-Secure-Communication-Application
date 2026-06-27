@@ -248,10 +248,10 @@ See [`docs/AI_USAGE.md`](docs/AI_USAGE.md) for a full statement of what AI was u
 
 ## Team
 
-| Name | ID | Stack |
-|------|----|-------|
-| Student 1 | | Key establishment (SHA-256, HMAC, HKDF, X25519, handshake) |
-| Student 2 | | Encryption (ChaCha20, Poly1305, AEAD, channel) |
+| Name            | ID      | Stack |
+|-----------------|---------|-------|
+| Sarah Hassouneh | 1210068 | Key establishment (SHA-256, HMAC, HKDF, X25519, handshake) |
+| Islam Zayed     | 1230007 | Encryption (ChaCha20, Poly1305, AEAD, channel) |
 
 See [`docs/STUDENT_CONTRIBUTIONS.md`](docs/STUDENT_CONTRIBUTIONS.md) for detailed breakdown.
 

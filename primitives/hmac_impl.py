@@ -1,5 +1,6 @@
 from primitives.sha256 import sha256
 
+HASH_LEN = 32  # SHA-256 output length in bytes
 
 # define the HMAC constnts:
 ipad = bytes([0x36] * 64)

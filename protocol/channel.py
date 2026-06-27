@@ -1,7 +1,7 @@
 import socket
 import threading
 from primitives.aead import chacha20_poly1305_encrypt, chacha20_poly1305_decrypt
-
+import struct
 
 def _send_loop(sock: socket.socket, key_send: bytes, nonce_material: bytes, identity: str) -> None:
     """Reads lines from stdin, encrypts each one, and sends it over sock.
@@ -10,12 +10,68 @@ def _send_loop(sock: socket.socket, key_send: bytes, nonce_material: bytes, iden
 
     Each message:
       1. Read a line from stdin
-      2. Build header: { version, message_type, sender_id, sequence_number }
+      2. Build header: { protocol_version, message_type, sender_id, sequence_number }
       3. nonce = nonce_material XOR sequence_number  (12 bytes, little-endian)
       4. ciphertext, tag = AEAD_encrypt(key_send, nonce, plaintext, aad=header)
       5. Send: [ header bytes ][ ciphertext ][ tag ]
     """
-    raise NotImplementedError
+
+    # Every outgoing message needs a unique sequence number
+    sequence_number = 1
+
+    while True:
+        try:
+            plaintext = input()
+        # exit cleanly when the user closes stdin
+        except EOFError:
+            break
+
+        # Convert the sender identity into a single byte
+        # client = 0, server = 1
+        sender_id = 0 if identity == "client" else 1
+
+        # Protocol constants
+        protocol_version = 1
+        message_type = 1  # Chat message
+        reserved = 0
+
+        # Build the nonce first
+        nonce = _build_nonce(
+            nonce_material,
+            sequence_number
+        )
+
+        # build the 16-byte header
+        header = struct.pack(
+            "<BBBBQI",
+            protocol_version,
+            message_type,
+            sender_id,
+            reserved,
+            sequence_number,
+            len(plaintext.encode())
+        )
+
+        # Encrypt the plaintext
+        ciphertext, tag = chacha20_poly1305_encrypt(
+            key_send,
+            nonce,
+            plaintext.encode(),
+            header
+        )
+
+        # Combine all parts of the packet
+        packet = header + ciphertext + tag
+
+        # Send the entire packet
+        try:
+            sock.sendall(packet)
+        except OSError:
+            print("Connection closed.")
+            break
+
+        sequence_number += 1
+
 
 
 def _recv_loop(sock: socket.socket, key_recv: bytes, nonce_material: bytes) -> None:
@@ -35,9 +91,77 @@ def _recv_loop(sock: socket.socket, key_recv: bytes, nonce_material: bytes) -> N
       4. plaintext = AEAD_decrypt(key_recv, nonce, ciphertext, tag, aad=header)
          → raises ValueError if tag is invalid (tampered message)
       5. Print plaintext to stdout
+
+    recv_loop()
+    │
+    ├── read 16-byte header
+    ├── unpack header
+    ├── replay detection
+    ├── read ciphertext
+    ├── read 16-byte tag
+    ├── rebuild nonce
+    ├── verify + decrypt
+    └── print plaintext
     """
+    # The sender always sends: 16-byte header, ciphertext, 16-byte tag
+    # the first thing the receiver always expects is the fixed-size header
+
     last_seen_seq_number = 0  # replay detection: reject any seq <= this
-    raise NotImplementedError
+    try:
+        while True:
+            # Read one complete header
+            header = _recv_exact(sock, 16)
+
+            # Connection closed
+            if not header:
+                break
+
+            (
+                protocol_version,
+                message_type,
+                sender_id,
+                reserved,
+                sequence_number,
+                plaintext_length,
+            ) = struct.unpack("<BBBBQI", header)
+
+            if sequence_number <= last_seen_seq_number:
+                raise ValueError("Replay attack detected.")
+
+            # Read the ciphertext
+            ciphertext = _recv_exact(
+                sock,
+                plaintext_length
+            )
+
+            # Read the 16-byte Poly1305 authentication tag
+            tag = _recv_exact(
+                sock,
+                16
+            )
+
+            # Reconstruct the nonce using the received sequence number
+            nonce = _build_nonce(
+                nonce_material,
+                sequence_number
+            )
+
+            try:
+                plaintext = chacha20_poly1305_decrypt(
+                    key_recv,
+                    nonce,
+                    ciphertext,
+                    tag,
+                    header
+                )
+            except ValueError:
+                print("Authentication failed.")
+                break
+
+            last_seen_seq_number = sequence_number
+            print(plaintext.decode())
+    except ConnectionError:
+        print("Peer disconnected.")
 
 
 def run(sock: socket.socket, key_send: bytes, key_recv: bytes, nonce_material: bytes, identity: str) -> None:
@@ -62,6 +186,8 @@ def run(sock: socket.socket, key_send: bytes, key_recv: bytes, nonce_material: b
     t_send.join()
     t_recv.join()
 
+    sock.close()
+
 def _build_nonce(nonce_material: bytes, sequence_number: int) -> bytes:
     seq = sequence_number.to_bytes(12, "little")
 
@@ -69,3 +195,15 @@ def _build_nonce(nonce_material: bytes, sequence_number: int) -> bytes:
         a ^ b
         for a, b in zip(nonce_material, seq)
     )
+
+def _recv_exact(sock: socket.socket, n: int) -> bytes:
+    """Read exactly n bytes from the socket."""
+    data = bytearray()
+
+    while len(data) < n:
+        chunk = sock.recv(n - len(data))
+        if not chunk:
+            raise ConnectionError("Connection closed.")
+        data.extend(chunk)
+
+    return bytes(data)

@@ -1,5 +1,6 @@
 import json
 import os
+import pytest
 from primitives.sha256 import sha256
 
 def load_vectors():
@@ -7,9 +8,19 @@ def load_vectors():
     with open(path) as f:
         return json.load(f)
 
-def test_sha256_vectors():
+@pytest.mark.parametrize("vector", load_vectors(), ids=lambda v: v['description'])
+def test_sha256_vectors(vector):
+    msg = bytes.fromhex(vector['input_hex'])
+    expected = bytes.fromhex(vector['output_hex'])
+    result = sha256(msg)
+    assert result == expected, (
+        f"FAIL [{vector['description']}]\n"
+        f"  expected: {expected.hex()}\n"
+        f"  got:      {result.hex()}"
+    )
+
+if __name__ == '__main__':
     vectors = load_vectors()
-    passed = 0
     for v in vectors:
         msg = bytes.fromhex(v['input_hex'])
         expected = bytes.fromhex(v['output_hex'])
@@ -19,9 +30,4 @@ def test_sha256_vectors():
             f"  expected: {expected.hex()}\n"
             f"  got:      {result.hex()}"
         )
-        passed += 1
-    return passed, len(vectors)
-
-if __name__ == '__main__':
-    passed, total = test_sha256_vectors()
-    print(f"SHA-256  ... PASSED ({passed}/{total} vectors)")
+    print(f"SHA-256  ... PASSED ({len(vectors)}/{len(vectors)} vectors)")

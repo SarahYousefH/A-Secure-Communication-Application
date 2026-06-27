@@ -256,3 +256,15 @@ See [`docs/AI_USAGE.md`](docs/AI_USAGE.md) for a full statement of what AI was u
 See [`docs/STUDENT_CONTRIBUTIONS.md`](docs/STUDENT_CONTRIBUTIONS.md) for detailed breakdown.
 
 ---
+
+## Quick Run of terminal commands
+
+```bash
+# Terminal 1
+python server.py --host 127.0.0.1 --port 5000
+
+# Terminal 2 (same psk_config.json)
+python client.py --host 127.0.0.1 --port 5000
+```
+
+---

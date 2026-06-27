@@ -54,6 +54,9 @@ def _send_loop(sock: socket.socket, key_send: bytes, nonce_material: bytes, iden
         )
 
         # Pack the protocol header into a fixed 16-byte binary format
+        # Header layout (16 bytes):
+        #   B = uint8, Q = uint64, I = uint32
+        #   [version][type][sender][reserved][sequence_number][plaintext_length]
         header = struct.pack(
             "<BBBBQI",
             protocol_version,

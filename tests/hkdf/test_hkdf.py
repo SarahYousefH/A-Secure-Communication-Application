@@ -1,5 +1,6 @@
 import json
 import os
+import pytest
 from primitives.hkdf import hkdf
 
 def load_vectors():
@@ -7,9 +8,21 @@ def load_vectors():
     with open(path) as f:
         return json.load(f)
 
-def test_hkdf_vectors():
+@pytest.mark.parametrize("vector", load_vectors(), ids=lambda v: v['description'])
+def test_hkdf_vectors(vector):
+    ikm = bytes.fromhex(vector['ikm_hex'])
+    salt = bytes.fromhex(vector['salt_hex'])
+    info = bytes.fromhex(vector['info_hex'])
+    expected = bytes.fromhex(vector['okm_hex'])
+    result = hkdf(ikm, salt, info, vector['length'])
+    assert result == expected, (
+        f"FAIL [{vector['description']}]\n"
+        f"  expected: {expected.hex()}\n"
+        f"  got:      {result.hex()}"
+    )
+
+if __name__ == '__main__':
     vectors = load_vectors()
-    passed = 0
     for v in vectors:
         ikm = bytes.fromhex(v['ikm_hex'])
         salt = bytes.fromhex(v['salt_hex'])
@@ -21,9 +34,4 @@ def test_hkdf_vectors():
             f"  expected: {expected.hex()}\n"
             f"  got:      {result.hex()}"
         )
-        passed += 1
-    return passed, len(vectors)
-
-if __name__ == '__main__':
-    passed, total = test_hkdf_vectors()
-    print(f"HKDF     ... PASSED ({passed}/{total} vectors)")
+    print(f"HKDF     ... PASSED ({len(vectors)}/{len(vectors)} vectors)")

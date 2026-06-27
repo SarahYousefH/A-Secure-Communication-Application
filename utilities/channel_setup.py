@@ -20,3 +20,20 @@ def create_client_socket(host: str, port: int) -> socket.socket:
     sock.connect((host, port))
     print(f"[client] Connected to {host}:{port}")
     return sock
+
+def recv_exact(sock: socket.socket, n: int) -> bytes:
+    """Reads exactly n bytes from sock, looping until all are received.
+
+    TCP does not guarantee a single recv() call returns all requested
+    bytes — it may return fewer. This loops until n bytes are collected.
+    Raises ConnectionError if the peer closes the connection early.
+    """
+    chunks = []
+    remaining = n
+    while remaining > 0:
+        chunk = sock.recv(remaining)
+        if not chunk:
+            raise ConnectionError("Connection closed before all bytes were received")
+        chunks.append(chunk)
+        remaining -= len(chunk)
+    return b''.join(chunks)

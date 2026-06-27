@@ -37,7 +37,7 @@ def poly1305(key: bytes, message: bytes) -> bytes:
         # Update accumulator modulo P
 
         # Incorporate the current message block
-        acc = (acc + n) % P
+        acc = (acc + n)
         # Multiply by the secret value r modulo P
         acc = (acc * r) % P
 

@@ -272,6 +272,7 @@ Or to debug and show the messages being sent and received:
 ```bash
 # Terminal 1
 python server.py --verbose
+# Terminal 2 (same psk_config.json)
 python client.py --verbose
 ```
 ---

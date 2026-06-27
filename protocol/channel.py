@@ -337,7 +337,8 @@ def _recv_loop(sock: socket.socket, key_recv: bytes, nonce_material: bytes) -> N
 
                 filename = plaintext.decode()
 
-                current_filename = "received_" + filename
+                os.makedirs("file_transfer", exist_ok=True)
+                current_filename = os.path.join("file_transfer", f"received_{filename}")
 
                 current_file = open(current_filename, "wb")
 

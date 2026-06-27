@@ -9,6 +9,7 @@ def main() -> None:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=5000)
     parser.add_argument("--config", default="psk_config.json")
+    parser.add_argument("--verbose", action="store_true", help="Show ciphertext/tag for each message")
     args = parser.parse_args()
 
     with open(args.config) as f:
@@ -20,7 +21,7 @@ def main() -> None:
     sock = create_client_socket(args.host, args.port)
     key_c2s, key_s2c, nonce_material = perform_handshake(sock, psk, identity)
     print("[client] Handshake completed successfully.")
-    run(sock, key_send=key_c2s, key_recv=key_s2c, nonce_material=nonce_material, identity=identity)
+    run(sock, key_send=key_c2s, key_recv=key_s2c, nonce_material=nonce_material, identity=identity, verbose=args.verbose)
 
 if __name__ == "__main__":
     main()

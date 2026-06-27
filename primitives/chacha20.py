@@ -7,6 +7,7 @@ CHACHA_CONSTANTS = (
     0x6b206574,
 )
 
+
 def chacha20_block(key: bytes, counter: int, nonce: bytes) -> bytes:
     """Returns one 64-byte ChaCha20 keystream block per RFC 8439 §2.1.
 
@@ -62,6 +63,7 @@ def chacha20_block(key: bytes, counter: int, nonce: bytes) -> bytes:
 
     return struct.pack("<16I", *working)
 
+
 def chacha20(key: bytes, nonce: bytes, counter: int, data: bytes) -> bytes:
     """Returns ChaCha20 keystream XOR'd with data per RFC 8439 §2.4.
 
@@ -114,12 +116,18 @@ def chacha20(key: bytes, nonce: bytes, counter: int, data: bytes) -> bytes:
         # keystream block is generated every iteration
         counter += 1
 
+        # RFC 8439 uses a 32-bit counter
+        if counter > 0xffffffff:
+            raise OverflowError("ChaCha20 counter exhausted.")
+
     # function should return immutable bytes object
     return bytes(result)
+
 
 def _rotl32(v: int, n: int) -> int:
     """Rotate left"""
     return ((v << n) & 0xffffffff) | (v >> (32 - n))
+
 
 def _quarter_round(state, a, b, c, d):
     """RFC:
@@ -145,6 +153,7 @@ def _quarter_round(state, a, b, c, d):
     state[b] ^= state[c]
     state[b] = _rotl32(state[b], 7)
 
+
 def _create_state(key: bytes, counter: int, nonce: bytes):
     # Convert the 32-byte key into eight 32-bit little-endian words
     key_words = list(struct.unpack("<8I", key))
@@ -152,7 +161,7 @@ def _create_state(key: bytes, counter: int, nonce: bytes):
     nonce_words = list(struct.unpack("<3I", nonce))
 
     """ ChaCha20 state is:
-    
+
     constant constant constant constant
     key      key      key      key
     key      key      key      key
@@ -161,6 +170,6 @@ def _create_state(key: bytes, counter: int, nonce: bytes):
     return [
         *CHACHA_CONSTANTS,
         *key_words,
-        counter,
+        counter & 0xffffffff, # mask counter to prevent invalid state
         *nonce_words,
     ]

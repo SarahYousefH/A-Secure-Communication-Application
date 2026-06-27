@@ -329,7 +329,7 @@ def _recv_loop(sock: socket.socket, key_recv: bytes, nonce_material: bytes) -> N
                 break
 
             last_seen_seq_number = sequence_number
-            
+
             if message_type == CHAT_MESSAGE:
                 print(plaintext.decode())
 
@@ -368,7 +368,7 @@ def _recv_loop(sock: socket.socket, key_recv: bytes, nonce_material: bytes) -> N
         print(e)
 
 
-def run(sock: socket.socket, key_send: bytes, key_recv: bytes, nonce_material: bytes, identity: str) -> None:
+def run(sock: socket.socket, key_send: bytes, key_recv: bytes, nonce_material: bytes, identity: str, verbose = False) -> None:
     """Starts the secure messaging loop and blocks until the session ends.
 
     Why threads: _send_loop blocks waiting for the user to type. _recv_loop

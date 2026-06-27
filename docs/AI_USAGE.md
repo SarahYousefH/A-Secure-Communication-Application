@@ -39,6 +39,5 @@ Claude (Anthropic) was used during this project.
 | `primitives/aead.py` | Student 2 — implemented from RFC 8439 §2.8 |
 | `protocol/channel.py` (incl. replay detection via `last_seen_seq_number`) | Student 2 — implemented from protocol spec |
 | All `tests/*/test_*.py` | Respective student per primitive |
-| Design report | Team — written without AI |
 
 ---

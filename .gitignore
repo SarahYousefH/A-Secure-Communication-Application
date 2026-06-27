@@ -19,9 +19,6 @@ venv/
 env/
 .venv/
 
-# Config with real keys — never commit
-config.json
-
 # OS
 .DS_Store
 Thumbs.db

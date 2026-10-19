@@ -281,10 +281,10 @@ python client.py --verbose
 
 In addition to chat messages, SecureChannel supports sending files over the same encrypted channel, using the same AEAD packet format with extra message types (`FILE_NAME`, `FILE_CHUNK`, `FILE_COMPLETE`).
 
+The receiving side saves it under `file_transfer/received_<filename>` (e.g. `file_transfer/received_sample.txt`), so it never overwrites a file of the same name already on the receiving end. The `file_transfer/` directory is created automatically if it doesn't exist.
+
 To send a file, type this in the chat:
 ```
 /send file_transfer/sample.txt
 ```
-
-The receiving side saves it under `file_transfer/received_<filename>` (e.g. `file_transfer/received_sample.txt`), so it never overwrites a file of the same name already on the receiving end. The `file_transfer/` directory is created automatically if it doesn't exist.
 ---
